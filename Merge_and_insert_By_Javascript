@@ -1,0 +1,104 @@
+Create or Replace table IPL_Players (Jersey_No Int,
+                                     Player_Name Varchar,
+                                     IPL_team Varchar,
+                                     Rec_Inst_Dttm Timestamp,
+                                     Rec_Upd_Dttm  Timestamp)
+select * from  IPL_Players    
+
+Create or replace table source_IPL_Players (Jersey_No Int,
+                                     Player_Name Varchar,
+                                     IPL_team Varchar,
+                                     Country Varchar )
+                                     
+Insert into source_IPL_Players (Jersey_No,Player_Name,IPL_team,Country)  Values
+('7','MS Dhoni','Chennai Super Kings','India');
+Insert into source_IPL_Players (Jersey_No,Player_Name,IPL_team,Country)  Values
+('18','Virat Kohli','Royal Challengers Bangalore','India');
+Insert into source_IPL_Players (Jersey_No,Player_Name,IPL_team,Country)  Values
+('45','Rohit Sharma','Mumbai Indians','India');
+Insert into source_IPL_Players (Jersey_No,Player_Name,IPL_team,Country)  Values
+('63','Jos Buttler','Rajasthan Royals','England');
+Insert into source_IPL_Players (Jersey_No,Player_Name,IPL_team,Country)  Values
+('4','Aiden Markram','Sun Risers Hyderabad','South Africa');
+Insert into source_IPL_Players (Jersey_No,Player_Name,IPL_team,Country)  Values
+('31','David Warner','Delhi Capitals','Australia');
+Insert into source_IPL_Players (Jersey_No,Player_Name,IPL_team,Country)  Values
+('12','Andre Russel','Kolkata Knight Riders','West Indies');
+update source_IPL_Players set Player_Name ='Andre Russell' where Jersey_No =12
+update source_IPL_Players set IPL_team ='Punjab Kings' where Jersey_No =58
+('58','Sam Curran','Chennai Super Kings','England');
+
+select * from source_IPL_Players
+
+--writing a Procedure to insert, update and delete in IPL_Players
+
+Create or replace procedure IUD_IPL_Players ()
+Returns string
+Language Javascript
+AS
+$$
+  var sql_command = `
+  Merge into IPL_Players a
+  Using source_IPL_Players b
+  on a.Jersey_No = b.Jersey_No
+  When matched then update set a.Jersey_No = b.Jersey_No,
+  a.Player_Name = b.Player_Name,
+  a.IPL_team = b.IPL_team,
+  a.Rec_Upd_Dttm = current_timestamp()
+  When not matched then insert (Jersey_No,Player_Name,IPL_team,Rec_Inst_Dttm)
+  values (b.Jersey_No,b.Player_Name,b.IPL_team,current_timestamp());;
+  `;
+
+  var res = snowflake.execute({sqlText:sql_command });
+  res.next();
+  var result = '';
+  for (i=1; i<=res.getColumnCount();i++){
+      result += res.getColumnName(1) + ': ' + res.getColumnValue(1) + '\n';
+  }
+  return result;
+  $$
+
+call IUD_IPL_Players();
+
+select * from IPL_Players ;
+select * from source_IPL_Players
+
+/*Merge into IPL_Players a
+  Using source_IPL_Players b
+  on a.Jersey_No = b.Jersey_No
+  When matched then update set a.Jersey_No = b.Jersey_No,
+  a.Player_Name = b.Player_Name,
+  a.IPL_team = b.IPL_team,
+  a.Rec_Upd_Dttm = current_timestamp()
+  When not matched then insert (Jersey_No,Player_Name,IPL_team,Rec_Inst_Dttm)
+  values (b.Jersey_No,b.Player_Name,b.IPL_team,current_timestamp());*/
+
+
+truncate table IPL_Players ;
+select * from IPL_Players;
+create or replace table IPL_Players_clone
+clone IPL_Players;
+select * from IPL_Players_clone
+truncate table IPL_Players_clone
+===============================
+--Now executing a procedure to insert records to clone from source
+
+Create or replace procedure IUD_IPL_Players_clone_proc ()
+Returns string
+Language Javascript
+AS
+$$
+  var sql_command = `
+  insert into IPL_Players_clone select * from IPL_Players
+  `;
+
+  var res = snowflake.execute({sqlText:sql_command });
+  res.next();
+  var result = '';
+  for (i=1; i<=res.getColumnCount();i++){
+      result += res.getColumnName(1) + ': ' + res.getColumnValue(1) + '\n';
+  }
+  return result;
+  $$
+
+call IUD_IPL_Players_clone_proc ();
